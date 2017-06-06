@@ -10,11 +10,8 @@ app.get('/', function(req, res){
 
 io.on('connection', function(socket){
   console.log('a user connected');
-  socket.on('chat message', function(msg){
-    if (msg.trim().length > 0 && msg.trim().length < 361) {
-      console.log('message: ' + msg);
-      io.emit('chat message', msg);
-    }
+  socket.on('user gave up', function(name){
+      io.emit('user gave up', name);
   });
   socket.on('disconnect', function(){
     console.log('user disconnected');

@@ -1,51 +1,237 @@
-<!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>Socket.IO chat</title>
+<head>
+    <title>bsys timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 1.5rem Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; margin-bottom: 10%;}
-      #messages li { padding: 5px 10px; height: 10%; display: block; word-break: normal; word-wrap: break-word;}
-      #messages li:nth-child(odd) { background: #eee; }
-    </style>
-  </head>
-  <body>
-    <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
-<script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+        #timer {
+            text-align: center;
+            margin: 0 auto;
+            font-size: 72px;
+            width: 100%;
+        }
+        #stopknop {
+            font-size: 42px;
+            background: #555;
+            border-radius: 10px;
+            border: 1px solid black;
+            padding: 10px;
+            color: white;
+            width: 100%;
+        }
+        .resetknop {
+            font-size: 18px;
+            background: #888;
+            border-radius: 10px;
+            border: 1px solid #666;
+            padding: 10px;
+            color: white;
+            margin: 5px 75px;
+            width: 50%;
+        }
+        #container {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            margin-top: calc(50vh - 150px);
+        }
+        #name {
+            font-size: 18px;
+            border: 1px solid #777;
+            border-radius: 5px;
+            text-align: center;
+            width: 100%;
+            height: 40px;
+            margin: 10px auto;
+        }
 
-  ga('create', 'UA-59798019-6', 'auto');
-  ga('send', 'pageview');
-</script>
+        /* Toast */
+        #snackbar {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            top: 30px;
+            font-size: 17px;
+        }
+
+        #snackbar.show {
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 4.5s;
+            animation: fadein 0.5s, fadeout 0.5s 4.5s;
+        }
+
+        @-webkit-keyframes fadein {
+            from {top: 0; opacity: 0;} 
+            to {top: 30px; opacity: 1;}
+        }
+
+        @keyframes fadein {
+            from {top: 0; opacity: 0;}
+            to {top: 30px; opacity: 1;}
+        }
+
+        @-webkit-keyframes fadeout {
+            from {top: 30px; opacity: 1;} 
+            to {top: 0; opacity: 0;}
+        }
+
+        @keyframes fadeout {
+            from {top: 30px; opacity: 1;}
+            to {top: 0; opacity: 0;}
+        }
+    </style>
+</head>
+<body>
+<div id="snackbar"></div>
+<div id="container">
+    <div id="timer">00:00:00</div>
+    <input type="text" id="name" placeholder="Mijn naam..." onInput="setCookie('myName', document.getElementById('name').value, 7);">
+    <button type="button" id="stopknop" onClick="stopTimer();">Ik geef het op</button>
+    <button type="button" class="resetknop" id="resetknop" onClick="resetTimer();">Reset timer</button>
+    <button type="button" class="resetknop" id="pauzeknop" onClick="pauseTimer();">Pause timer</button>
+</div>
 <script src="/socket.io/socket.io.js"></script>
-<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
-  var socket = io();
-  $('form').submit(function(){
-    var message = $('#m').val();
-    if (message.trim().length > 0 && message.trim().length < 361) {
-      socket.emit('chat message', message);
-      $('#m').val('');
+    var socket = io();
+    $('form').submit(function(){
+    socket.on('user gave up', function(name){
+      // Show toast
+      var toast = document.getElementById("snackbar");
+      toast.innerHTML = name + " gave up!";
+      toast.className = "show";
+      setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 5000);
+    });
+    var timerStopped = true;
+    if (isCookie("myName")) {
+        document.getElementById("name").value = getCookie("myName");
+        setCookie('myName', document.getElementById('name').value, 7);
     }
-    return false;
-  });
-  socket.on('chat message', function(msg){
-    var messages = $('#messages');
-    messages.append($('<li>').text(msg));
-    $('html').scrollTop($(document).height());
-  });
+    if (!isCookie("pauze")) {
+        if (!isCookie("startTime")) {
+            var start = (new Date()).getTime();
+            var timer = 0;
+            setCookie("startTime", start, 4);
+        } else {
+            var start = getCookie("startTime");
+        }
+        var timingEvent = startTimer();
+    }
+    else {
+        var addedTime = getCookie("pauze");
+        start = ((new Date()).getTime()) - addedTime;
+        timer = Math.round(((new Date()).getTime() - start) / 1000);
+        document.getElementById("timer").innerHTML = secondsToString(timer);
+    }
+
+    function startTimer() {
+        timerStopped = false;
+        return setInterval(function(){
+            timer = Math.round(((new Date()).getTime() - start) / 1000);
+            document.getElementById("timer").innerHTML = secondsToString(timer);
+        }, 1000);
+    }
+
+    function secondsToString(seconds) {
+        var hours = Math.floor(seconds / 3600);
+        seconds = seconds - (3600 * hours);
+        var minutes = Math.floor(seconds / 60);
+        seconds = seconds - (60 * minutes);
+        return pad(hours, 2) + ":" + pad(minutes, 2) + ":" + pad(seconds, 2);
+    }
+
+    function pad(num, size) {
+        var s = "00" + num;
+        return s.substr(s.length-size);
+    }
+
+    function stopTimer() {
+        clearInterval(timingEvent);
+        removeCookie("startTime");
+        // sendTimeToServer();
+        socket.emit('user gave up', document.getElementById("name").value);
+        timerStopped = true;
+    }
+
+    function resetTimer() {
+        document.getElementById("timer").innerHTML = secondsToString(0);
+        if (isCookie("pauze")) {
+            setCookie("pauze", 0, 7);
+        }
+        start = (new Date()).getTime();
+        setCookie("startTime", start, 4);
+    }
+
+    function pauseTimer() {
+        if (!isCookie("pauze")) {
+            timerStopped = true;
+            clearInterval(timingEvent);
+            setCookie("pauze", ((new Date()).getTime() - start), 7);
+
+        } else {
+            var addedTime = getCookie("pauze");
+            start = ((new Date()).getTime()) - addedTime;
+            timingEvent = startTimer();
+            setCookie("startTime", start, 4);
+            removeCookie("pauze");
+        }
+    }
+
+    function setCookie(cname, cvalue, exdays) {
+        var d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        var expires = "expires="+ d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+
+    function removeCookie(cname) {
+        document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    }
+
+    function getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    function isCookie(cname) {
+        var cookie = getCookie(cname);
+        return (cookie !== "");
+    }
+
+    function sendTimeToServer()
+    {
+        if (!timerStopped) {
+            var formData = new FormData();
+            formData.append("time", timer);
+            formData.append("name", document.getElementById('name').value);
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    alert(xmlHttp.responseText);
+                }
+            };
+            xmlHttp.open("post", "timerstopped.php");
+            xmlHttp.send(formData);
+        }
+    }
+
 </script>
-  </body>
+</body>
 </html>

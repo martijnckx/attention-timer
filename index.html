@@ -100,7 +100,6 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
     var socket = io();
-    $('form').submit(function(){
     socket.on('user gave up', function(name){
       // Show toast
       var toast = document.getElementById("snackbar");
@@ -215,8 +214,7 @@
         return (cookie !== "");
     }
 
-    function sendTimeToServer()
-    {
+    function sendTimeToServer() {
         if (!timerStopped) {
             var formData = new FormData();
             formData.append("time", timer);
@@ -231,7 +229,6 @@
             xmlHttp.send(formData);
         }
     }
-
 </script>
 </body>
 </html>

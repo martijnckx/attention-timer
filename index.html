@@ -3,6 +3,9 @@
     <title>bsys timer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        body {
+          font-family: sans-serif;
+        }
         #timer {
             text-align: center;
             margin: 0 auto;
@@ -59,6 +62,7 @@
             left: 50%;
             top: 30px;
             font-size: 17px;
+            border-radius: 10px;
         }
 
         #snackbar.show {
@@ -154,7 +158,9 @@
         clearInterval(timingEvent);
         removeCookie("startTime");
         // sendTimeToServer();
-        socket.emit('user gave up', document.getElementById("name").value);
+        if (!timerStopped) {
+          socket.emit('user gave up', document.getElementById("name").value);
+        }
         timerStopped = true;
     }
 

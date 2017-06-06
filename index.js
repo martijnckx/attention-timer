@@ -11,6 +11,8 @@ app.get('/', function(req, res){
 io.on('connection', function(socket){
   console.log('a user connected');
   socket.on('user gave up', function(name){
+      if (name = "")
+        name = "A man without a name"
       io.emit('user gave up', name);
   });
   socket.on('disconnect', function(){

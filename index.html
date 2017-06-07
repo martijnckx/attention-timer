@@ -207,7 +207,7 @@
         socket.emit('user gave up', nameInput.value);
         timerStopped = true;
         document.getElementById('stopknop').innerHTML = 'Try again';
-      } else if (timerStopped & gaveUp) {
+      } else if (gaveUp) {
         gaveUp = false;
         timerStopped = false;
         resetTimer();

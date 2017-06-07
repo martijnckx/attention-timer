@@ -96,8 +96,8 @@
 <div id="snackbar"></div>
 <div id="container">
     <div id="timer">00:00:00</div>
-    <input type="text" id="name" placeholder="Mijn naam..." onInput="setCookie('myName', document.getElementById('name').value, 7);">
-    <button type="button" id="stopknop" onClick="stopTimer();">I give up</button>
+    <input type="text" id="name" placeholder="Enter your name..." onInput="setCookie('myName', document.getElementById('name').value, 7);">
+    <button type="button" id="stopknop" onClick="stopTimer();">Give up</button>
     <button type="button" class="resetknop" id="resetknop" onClick="resetTimer();">Start fresh</button>
     <button type="button" class="resetknop" id="pauzeknop" onClick="pauseTimer();">Pause timer</button>
 </div>
@@ -132,6 +132,7 @@
     var timerDiv = document.getElementById('timer');
     var timer = 0;
     var timingEvent = null;
+    var gaveUp = false;
 
     //****************//
     //     Timer      //
@@ -198,12 +199,20 @@
     // stops it and sends the time to the server
     // TODO: Send time to server
     function stopTimer() {
-      if (!timerStopped) {
+      if (!timerStopped && !gaveUp) {
+        gaveUp = true;
         clearInterval(timingEvent);
         removeCookie("startTime");
         // sendTimeToServer();
         socket.emit('user gave up', nameInput.value);
         timerStopped = true;
+        document.getElementById('stopknop').innerHTML = 'Try again';
+      } else if (timerStopped & gaveUp) {
+        gaveUp = false;
+        timerStopped = false;
+        resetTimer();
+        starTimer();
+        document.getElementById('stopknop').innerHTML = 'Give up';
       }
     }
 
@@ -222,24 +231,26 @@
     // Pauses or resumes the timer
     function pauseTimer() {
         var pauzeKnop = document.getElementById("pauzeknop");
-        if (!paused) {
-          // PAUSE
-            timerStopped = true;
-            paused = true;
-            clearInterval(timingEvent);
-            // Set the pause cookie to the duration we had already
-            setCookie("pauze", timer, 7);
-            pauzeknop.innerHTML = "Resume timer";
-        } else {
-          // RESUME
-            var addedTime = getCookie("pauze");
-            start = ((new Date()).getTime()) - addedTime;
-            startTimer();
-            setCookie("startTime", start, 4);
-            removeCookie("pauze");
-            paused = false;
-            timerStopped = false;
-            pauzeknop.innerHTML = "Pause timer";
+        if (!gaveUp) {
+          if (!paused ) {
+            // PAUSE
+              timerStopped = true;
+              paused = true;
+              clearInterval(timingEvent);
+              // Set the pause cookie to the duration we had already
+              setCookie("pauze", timer, 7);
+              pauzeknop.innerHTML = "Resume timer";
+          } else {
+            // RESUME
+              var addedTime = getCookie("pauze");
+              start = ((new Date()).getTime()) - addedTime;
+              startTimer();
+              setCookie("startTime", start, 4);
+              removeCookie("pauze");
+              paused = false;
+              timerStopped = false;
+              pauzeknop.innerHTML = "Pause timer";
+          }
         }
     }
 

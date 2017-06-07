@@ -209,7 +209,6 @@
         document.getElementById('stopknop').innerHTML = 'Try again';
       } else if (gaveUp) {
         gaveUp = false;
-        timerStopped = false;
         resetTimer();
         startTimer();
         document.getElementById('stopknop').innerHTML = 'Give up';
@@ -248,7 +247,6 @@
               setCookie("startTime", start, 4);
               removeCookie("pauze");
               paused = false;
-              timerStopped = false;
               pauzeknop.innerHTML = "Pause timer";
           }
         }

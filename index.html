@@ -103,46 +103,82 @@
 </div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+
+    //****************//
+    //   Sockets      //
+    //****************//
+
     var socket = io();
     socket.on('user gave up', function(name){
+      userGaveUp(name);
+    });
+
+    function userGaveUp(name) {
       // Show toast
       var toast = document.getElementById("snackbar");
       toast.innerHTML = name + " gave up!";
       toast.className = "show";
       setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 5000);
-    });
+    }
+
+    //****************//
+    //   Variables    //
+    //****************//
+
     var paused = false;
     var timerStopped = true;
-    if (isCookie("myName")) {
-        document.getElementById("name").value = getCookie("myName");
-        setCookie('myName', document.getElementById('name').value, 7);
-    }
-    if (!isCookie("pauze")) {
-        if (!isCookie("startTime")) {
-            var start = (new Date()).getTime();
-            var timer = 0;
-            setCookie("startTime", start, 4);
-        } else {
-            var start = getCookie("startTime");
-        }
-        var timingEvent = startTimer();
-    }
-    else {
-        paused = true;
-        var addedTime = getCookie("pauze");
-        start = ((new Date()).getTime()) - addedTime;
-        timer = Math.round(((new Date()).getTime() - start) / 1000);
-        document.getElementById("timer").innerHTML = secondsToString(timer);
+    var start = (new Date()).getTime();
+    var nameInput = document.getElementById('name');
+    var timerDiv = document.getElementById('timer');
+    var timer = 0;
+    var timingEvent = null;
+
+    //****************//
+    //     Timer      //
+    //****************//
+
+    init();
+
+    // Set all variables based on cookies
+    // Start timer if it's not paused
+    function init() {
+      if (isCookie("myName")) {
+        nameInput.value = getCookie("myName");
+        setCookie('myName', nameInput.value, 7);
+      }
+      if (!isCookie("pauze")) {
+          if (!isCookie("startTime")) {
+              start = (new Date()).getTime();
+              timer = 0;
+              setCookie("startTime", start, 4);
+          } else {
+              start = getCookie("startTime");
+          }
+          startTimer();
+      }
+      else {
+          paused = true;
+          var addedTime = getCookie("pauze");
+          start = ((new Date()).getTime()) - addedTime;
+          timer = Math.round(((new Date()).getTime() - start) / 1000);
+          timerDiv.innerHTML = secondsToString(timer);
+      }
     }
 
+    // If the timer was previously stopped,
+    // start it again
     function startTimer() {
+      if (timerStopped) {
         timerStopped = false;
-        return setInterval(function(){
+        timingEvent = setInterval(function(){
             timer = Math.round(((new Date()).getTime() - start) / 1000);
-            document.getElementById("timer").innerHTML = secondsToString(timer);
+            timerDiv.innerHTML = secondsToString(timer);
         }, 1000);
+      }
     }
 
+    // Given a certain amount of seconds,
+    // returns a string of the form HH:mm:ss
     function secondsToString(seconds) {
         var hours = Math.floor(seconds / 3600);
         seconds = seconds - (3600 * hours);
@@ -151,52 +187,67 @@
         return pad(hours, 2) + ":" + pad(minutes, 2) + ":" + pad(seconds, 2);
     }
 
+    // Given a number and the desired string size,
+    // pads it with zeroes to the desired length
     function pad(num, size) {
         var s = "00" + num;
         return s.substr(s.length-size);
     }
 
+    // If the timer is active,
+    // stops it and sends the time to the server
+    // TODO: Send time to server
     function stopTimer() {
+      if (!timerStopped) {
         clearInterval(timingEvent);
         removeCookie("startTime");
         // sendTimeToServer();
-        if (!timerStopped) {
-          socket.emit('user gave up', document.getElementById("name").value);
-        }
+        socket.emit('user gave up', nameInput.value);
         timerStopped = true;
+      }
     }
 
+    // Sets the timer to 0.
     function resetTimer() {
-        document.getElementById("timer").innerHTML = secondsToString(0);
+        timerDiv.innerHTML = secondsToString(0);
         start = (new Date()).getTime();
         setCookie("startTime", start, 4);
+        // The pause duration does not matter anymore,
+        // so set it to 0.
         if (isCookie("pauze")) {
             setCookie("pauze", 0, 7);
         }
-        if (timerStopped && !paused) {
-            startTimer();
-        }
     }
 
+    // Pauses or resumes the timer
     function pauseTimer() {
         var pauzeKnop = document.getElementById("pauzeknop");
-        if (!isCookie("pauze")) {
+        if (!paused) {
+          // PAUSE
             timerStopped = true;
-            clearInterval(timingEvent);
-            setCookie("pauze", ((new Date()).getTime() - start), 7);
             paused = true;
+            clearInterval(timingEvent);
+            // Set the pause cookie to the duration we had already
+            setCookie("pauze", timer, 7);
             pauzeknop.innerHTML = "Resume timer";
         } else {
+          // RESUME
             var addedTime = getCookie("pauze");
             start = ((new Date()).getTime()) - addedTime;
-            timingEvent = startTimer();
+            startTimer();
             setCookie("startTime", start, 4);
             removeCookie("pauze");
             paused = false;
+            timerStopped = false;
             pauzeknop.innerHTML = "Pause timer";
         }
     }
 
+    //****************//
+    //    Cookies     //
+    //****************//
+
+    // Sets a cookie for a certain amount of dayas
     function setCookie(cname, cvalue, exdays) {
         var d = new Date();
         d.setTime(d.getTime() + (exdays*24*60*60*1000));
@@ -204,10 +255,12 @@
         document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
     }
 
+    // Removes a cookie
     function removeCookie(cname) {
         document.cookie = cname + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
 
+    // Returns the value of a cookie
     function getCookie(cname) {
         var name = cname + "=";
         var decodedCookie = decodeURIComponent(document.cookie);
@@ -224,25 +277,10 @@
         return "";
     }
 
+    // Returns whether or not the cookie exists
     function isCookie(cname) {
         var cookie = getCookie(cname);
         return (cookie !== "");
-    }
-
-    function sendTimeToServer() {
-        if (!timerStopped) {
-            var formData = new FormData();
-            formData.append("time", timer);
-            formData.append("name", document.getElementById('name').value);
-            var xmlHttp = new XMLHttpRequest();
-            xmlHttp.onreadystatechange = function () {
-                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                    alert(xmlHttp.responseText);
-                }
-            };
-            xmlHttp.open("post", "timerstopped.php");
-            xmlHttp.send(formData);
-        }
     }
 </script>
 </body>
